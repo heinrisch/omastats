@@ -483,8 +483,14 @@ Column {
       onToggled: root.set("utilizationColors", !checked)
     }
 
+    FlagRow {
+      label: "Use theme colors"
+      checked: Model.flag(root.settings, "utilizationThemeColors")
+      onToggled: root.set("utilizationThemeColors", !checked)
+    }
+
     Repeater {
-      model: Model.flag(root.settings, "utilizationColors")
+      model: Model.flag(root.settings, "utilizationColors") || Model.flag(root.settings, "utilizationThemeColors")
         ? [
             { key: "utilizationLowColor", label: "Low (<25%)" },
             { key: "utilizationNormalColor", label: "Normal (25–59%)" },
@@ -733,7 +739,7 @@ Column {
     property string key: ""
     property string label: ""
     property bool invalid: false
-    readonly property string settingColor: Model.utilizationSettingColor(root.settings, key, root.lightTheme)
+    readonly property string settingColor: Model.gradeDefaultColor(root.settings, key, root.lightTheme, root.service ? root.service.themeColors : null)
     readonly property color swatchColor: settingColor
     property string editStartText: ""
     onSettingColorChanged: if (!input.activeFocus) input.text = settingColor
@@ -812,7 +818,7 @@ Column {
       visible: colorRow.invalid
       anchors.left: parent.left
       anchors.bottom: parent.bottom
-      text: "Use a six-digit hex color, or clear for the theme default."
+      text: "Use a six-digit hex color, or clear for the default."
       color: Commons.Color.urgent
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption

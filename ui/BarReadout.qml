@@ -52,6 +52,7 @@ WidgetButton {
   readonly property bool twoLine: module === "network" || isDisk
   readonly property color s1: service ? service.series1 : foreground
   readonly property color s2: service ? service.series2 : foreground
+  readonly property var themeColors: service ? service.themeColors : null
   readonly property bool lightTheme: bar && !bar.transparent && bar.background.a >= 0.95
     ? bar.background.hslLightness > 0.5 : foreground.hslLightness < 0.5
   // A vertical bar stacks label, picture and figure in a column as wide as
@@ -88,7 +89,10 @@ WidgetButton {
     : (module === "memory" ? (mem.total > 0 ? memPercent : NaN)
     : (isDisk && diskUsed && diskUsage.size > 0 ? ringValue * 100 : NaN))))
   readonly property color utilizationColor: Model.utilizationColor(settings, utilizationPercent, lightTheme) || s1
-  readonly property color percentageColor: Model.utilizationColor(settings, utilizationPercent, lightTheme) || foreground
+  // Figures grade in theme-derived colors when that mode is on, else in the
+  // fixed shades when those are; rings and graphs never follow the theme mode.
+  readonly property color percentageColor: Model.themeFigureColor(settings, utilizationPercent, lightTheme, themeColors)
+    || Model.utilizationColor(settings, utilizationPercent, lightTheme) || foreground
   readonly property bool charging: !!(battery && (battery.status === "Charging" || battery.status === "Full"))
 
   // Disk activity: the selected device when present, otherwise every disk.

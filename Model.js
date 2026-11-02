@@ -40,6 +40,7 @@ var SETTINGS = {
   historySeconds: 240,
   publicIp: true,
   utilizationColors: false,
+  utilizationThemeColors: false,
   utilizationLowColor: "",
   utilizationNormalColor: "",
   utilizationWarningColor: "",
@@ -704,18 +705,105 @@ function utilizationSettingColor(settings, key, lightTheme) {
   return (lightTheme ? UTILIZATION_LIGHT : UTILIZATION_DARK)[index]
 }
 
+function utilizationEnabled(settings) {
+  return flag(settings, "utilizationColors")
+}
+
 function utilizationColor(settings, value, lightTheme) {
   var grade = utilizationGrade(value)
-  if (!flag(settings, "utilizationColors") || grade < 0) return null
+  if (!utilizationEnabled(settings) || grade < 0) return null
   return utilizationSettingColor(settings, UTILIZATION_KEYS[grade], lightTheme)
 }
 
 function utilizationHistoryColors(values, settings, lightTheme) {
-  if (!flag(settings, "utilizationColors")) return []
+  if (!utilizationEnabled(settings)) return []
   var out = []
   var list = Array.isArray(values) ? values : []
   for (var i = 0; i < list.length; i++) out.push(utilizationColor(settings, list[i], lightTheme))
   return out
+}
+
+// Hex/RGB/HSL conversion without Qt, so the theme palette stays testable in
+// plain JS. Hue is 0-360, saturation and lightness are 0-1.
+function hexToHsl(hex) {
+  var c = [1, 3, 5].map(function(i) { return parseInt(hex.slice(i, i + 2), 16) / 255 })
+  var max = Math.max(c[0], c[1], c[2]), min = Math.min(c[0], c[1], c[2])
+  var h = 0, s = 0, l = (max + min) / 2
+  if (max !== min) {
+    var d = max - min
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+    if (max === c[0]) h = (c[1] - c[2]) / d + (c[1] < c[2] ? 6 : 0)
+    else if (max === c[1]) h = (c[2] - c[0]) / d + 2
+    else h = (c[0] - c[1]) / d + 4
+    h *= 60
+  }
+  return { h: h, s: s, l: l }
+}
+
+function hslToHex(h, s, l) {
+  function channel(n) {
+    var k = (n + h / 30) % 12
+    var a = s * Math.min(l, 1 - l)
+    return Math.round((l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))) * 255)
+  }
+  function byte(v) {
+    return (v < 16 ? "0" : "") + v.toString(16)
+  }
+  return "#" + byte(channel(0)) + byte(channel(8)) + byte(channel(4))
+}
+
+// Canonical grade hues: green, blue, orange, red.
+var UTILIZATION_GRADE_HUES = [140, 215, 32, 4]
+
+// The four grade defaults derived from the current Omarchy theme
+// (colors.toml). When the theme's green, blue, orange (or yellow) and red
+// are all usable and distinct, grades use them as named. A monochrome theme
+// cannot grade by name, so grades are synthesized at the canonical hues in
+// the accent's voice instead. With no usable theme at all, the fixed shades
+// apply.
+function utilizationThemePalette(theme, lightTheme) {
+  var t = theme || {}
+  function pick(name) {
+    return validHexColor(t[name]) ? t[name] : null
+  }
+  var semantic = [pick("green"), pick("blue"), pick("orange") || pick("yellow"), pick("red")]
+  if (semantic[0] && semantic[1] && semantic[2] && semantic[3]) {
+    var hues = semantic.map(function(c) { return hexToHsl(c).h })
+    var distinct = true
+    for (var i = 0; i < hues.length && distinct; i++)
+      for (var j = i + 1; j < hues.length; j++)
+        if (hueDistance(hues[i], hues[j]) < 30) distinct = false
+    if (distinct) return semantic
+  }
+  if (!validHexColor(t.accent)) return (lightTheme ? UTILIZATION_LIGHT : UTILIZATION_DARK).slice()
+  var accent = hexToHsl(t.accent)
+  var s = clamp(accent.s, 0.4, 0.85)
+  var l = lightTheme ? clamp(accent.l, 0.28, 0.45) : clamp(accent.l, 0.55, 0.75)
+  return UTILIZATION_GRADE_HUES.map(function(h) { return hslToHex(h, s, l) })
+}
+
+function utilizationThemeDefault(theme, index, lightTheme) {
+  return utilizationThemePalette(theme, lightTheme)[index]
+}
+
+// One grade's default as the Settings swatches preview it: a custom hex
+// color first, then the theme-derived grade when that mode is on, else the
+// fixed shade.
+function gradeDefaultColor(settings, key, lightTheme, theme) {
+  var chosen = settingValue(settings, key)
+  if (validHexColor(chosen)) return chosen
+  var index = UTILIZATION_KEYS.indexOf(key)
+  if (flag(settings, "utilizationThemeColors")) return utilizationThemeDefault(theme, index, lightTheme)
+  return (lightTheme ? UTILIZATION_LIGHT : UTILIZATION_DARK)[index]
+}
+
+// The theme grade color for a bar figure, or null when theme figures are
+// off or the value has no grade. Only figures consult this; rings, graphs
+// and histories keep the fixed toggle and the theme series colors.
+function themeFigureColor(settings, value, lightTheme, theme) {
+  var grade = utilizationGrade(value)
+  if (!flag(settings, "utilizationThemeColors") || grade < 0) return null
+  return gradeDefaultColor(settings, UTILIZATION_KEYS[grade], lightTheme, theme)
 }
 
 // Bar readout looks: graph, ring, text (figure only), both (graph + figure),

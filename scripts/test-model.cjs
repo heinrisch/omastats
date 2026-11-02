@@ -100,11 +100,74 @@ test("utilization colors follow displayed percentages and preserve missing sampl
       assert.ok(contrast(color, background) >= 4.5, `${color} is too faint on ${background}`);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../manifest.json"), "utf8"));
-  for (const key of ["utilizationColors", "utilizationLowColor", "utilizationNormalColor",
+  for (const key of ["utilizationColors", "utilizationThemeColors", "utilizationLowColor", "utilizationNormalColor",
     "utilizationWarningColor", "utilizationCriticalColor"]) {
     assert.equal(manifest.barWidget.defaults[key], model.SETTINGS[key]);
     assert.ok(manifest.barWidget.schema.some(setting => setting.key === key));
   }
+});
+
+test("bar figures can grade in theme-derived colors", () => {
+  // A colorful theme: each grade takes its named color.
+  const vivid = { accent: "#89b4fa", green: "#a6e3a1", blue: "#89b4fa",
+    orange: "#fab387", yellow: "#f9e2af", red: "#f38ba8" };
+  // A monochrome theme: every named color sits within a 20-degree hue slice,
+  // so grading by name would be invisible.
+  const mono = { accent: "#db4525", green: "#e1770c", blue: "#db4525",
+    orange: "#e6684a", yellow: "#f48d1d", red: "#e14d2a" };
+  const figures = { utilizationThemeColors: true };
+  assert.equal(model.SETTINGS.utilizationThemeColors, false);
+  assert.equal(model.utilizationEnabled({}), false);
+  assert.equal(model.utilizationEnabled({ utilizationColors: true }), true);
+  assert.equal(model.utilizationEnabled(figures), false,
+    "theme figures leave rings, graphs and histories ungraded");
+  // The theme flag grades figures on its own: no fixed-shade toggle needed.
+  assert.equal(model.themeFigureColor(figures, 10, false, vivid), "#a6e3a1");
+  assert.equal(model.themeFigureColor(figures, 30, false, vivid), "#89b4fa");
+  assert.equal(model.themeFigureColor(figures, 70, false, vivid), "#fab387");
+  assert.equal(model.themeFigureColor(figures, 90, false, vivid), "#f38ba8");
+  assert.equal(model.themeFigureColor({}, 10, false, vivid), null);
+  assert.equal(model.themeFigureColor({ utilizationColors: true }, 10, false, vivid), null,
+    "the fixed toggle keeps its own shades for figures");
+  // Warning falls back to yellow when the theme has no orange.
+  const noOrange = { accent: "#89b4fa", green: "#a6e3a1", blue: "#89b4fa",
+    yellow: "#f9e2af", red: "#f38ba8" };
+  assert.equal(model.themeFigureColor(figures, 70, false, noOrange), "#f9e2af");
+  // A monochrome theme derives distinct grades from the accent instead.
+  const derived = [10, 30, 70, 90].map(v => model.themeFigureColor(figures, v, false, mono));
+  for (const color of derived) assert.match(color, /^#[0-9a-f]{6}$/);
+  assert.equal(new Set(derived).size, 4);
+  function hue(hex) {
+    const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const max = Math.max(...c), min = Math.min(...c);
+    if (max === min) return 0;
+    const d = max - min;
+    const h = max === c[0] ? (c[1] - c[2]) / d + (c[1] < c[2] ? 6 : 0)
+      : max === c[1] ? (c[2] - c[0]) / d + 2 : (c[0] - c[1]) / d + 4;
+    return h * 60;
+  }
+  function hueDistance(a, b) {
+    const d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+  }
+  const hues = derived.map(hue);
+  for (let i = 0; i < hues.length; i++)
+    for (let j = i + 1; j < hues.length; j++)
+      assert.ok(hueDistance(hues[i], hues[j]) >= 25,
+        `${derived[i]} and ${derived[j]} are too close to grade by`);
+  // Derived grades sit at the canonical grade hues.
+  assert.ok(Math.abs(hue(derived[3]) - 4) < 12, "critical stays a red");
+  // A custom hex color still wins over the theme.
+  assert.equal(model.themeFigureColor({ ...figures, utilizationCriticalColor: "#123abc" }, 90, false, vivid), "#123abc");
+  // With no usable theme at all, figures fall back to the fixed shades.
+  assert.equal(model.themeFigureColor(figures, 10, false, {}), "#72ca9b");
+  assert.equal(model.themeFigureColor(figures, 10, true, {}), "#277944");
+  // The settings swatches preview the same defaults the figures use.
+  assert.equal(model.gradeDefaultColor(figures, "utilizationLowColor", false, vivid), "#a6e3a1");
+  assert.equal(model.gradeDefaultColor(figures, "utilizationLowColor", false, mono), derived[0]);
+  assert.equal(model.gradeDefaultColor({}, "utilizationLowColor", false, vivid), "#72ca9b");
+  assert.equal(model.gradeDefaultColor({ ...figures, utilizationLowColor: "#123abc" },
+    "utilizationLowColor", false, vivid), "#123abc");
 });
 
 test("disk readouts keep the 1.1 bar until barDisks is set", () => {

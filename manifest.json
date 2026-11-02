@@ -53,6 +53,7 @@
       "historySeconds": 240,
       "publicIp": true,
       "utilizationColors": false,
+      "utilizationThemeColors": false,
       "utilizationLowColor": "",
       "utilizationNormalColor": "",
       "utilizationWarningColor": "",
@@ -202,31 +203,38 @@
         "defaultValue": false
       },
       {
+        "key": "utilizationThemeColors",
+        "type": "boolean",
+        "label": "Utilization theme colors",
+        "description": "Grade bar figures by utilization using theme-derived colors: the theme's green, blue, orange and red when distinct, else grades synthesized from its accent. Graphs and rings keep their series colors. Custom colors still win.",
+        "defaultValue": false
+      },
+      {
         "key": "utilizationLowColor",
         "type": "string",
         "label": "Low utilization color",
-        "description": "Six-digit hex color for displayed 0–24% utilization; blank follows the current theme.",
+        "description": "Six-digit hex color for displayed 0–24% utilization; blank uses the theme-derived grade color when Use theme colors is on, else a fixed shade.",
         "defaultValue": ""
       },
       {
         "key": "utilizationNormalColor",
         "type": "string",
         "label": "Normal utilization color",
-        "description": "Six-digit hex color for displayed 25–59% utilization; blank follows the current theme.",
+        "description": "Six-digit hex color for displayed 25–59% utilization; blank uses the theme-derived grade color when Use theme colors is on, else a fixed shade.",
         "defaultValue": ""
       },
       {
         "key": "utilizationWarningColor",
         "type": "string",
         "label": "Warning utilization color",
-        "description": "Six-digit hex color for displayed 60–84% utilization; blank follows the current theme.",
+        "description": "Six-digit hex color for displayed 60–84% utilization; blank uses the theme-derived grade color when Use theme colors is on, else a fixed shade.",
         "defaultValue": ""
       },
       {
         "key": "utilizationCriticalColor",
         "type": "string",
         "label": "Critical utilization color",
-        "description": "Six-digit hex color for displayed 85–100% utilization; blank follows the current theme.",
+        "description": "Six-digit hex color for displayed 85–100% utilization; blank uses the theme-derived grade color when Use theme colors is on, else a fixed shade.",
         "defaultValue": ""
       },
       {

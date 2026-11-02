@@ -207,8 +207,13 @@ rounded percentage selects low below 25%, normal 25–59%,
 warning 60–84%, or critical 85% and higher. Each grade accepts a `#RRGGBB`
 color. Disk and network transfer rates, battery, sensors, and other panel graphs
 and rings keep their theme colors. The default green, blue, orange, and red shades
-adapt to light and dark bars and popups. A custom hex color stays fixed across
-themes; clear its field to return to the theme-aware default.
+adapt to light and dark bars and popups. "Use theme colors" instead grades just
+the bar figures from the current Omarchy theme: its green, blue, orange (or yellow
+when it has no orange), and red when those are distinct enough to grade by, else
+grades synthesized at green, blue, orange, and red hues in the accent's voice, so
+a monochrome theme still grades visibly. Graphs, rings, and the GPU histories keep
+their series colors, and everything follows theme switches live. A custom hex color
+stays fixed across themes; clear its field to return to the default.
 
 Every process list has an **All** toggle that unfolds into every process with a
 search field (`/` from anywhere in the panel), sorted by that page's column.
@@ -243,10 +248,11 @@ Setup → Plugins:
 | `historySeconds`          | `240`                                     | How far back the graphs reach, in seconds                 |
 | `publicIp`                | `true`                                    | Look up the public address (api.ipify.org) on the Network page |
 | `utilizationColors`       | `false`                                   | Color bar utilization readouts and historical samples by grade |
-| `utilizationLowColor`     | `""` (theme-aware green)                  | `#RRGGBB` color for displayed values below 25%            |
-| `utilizationNormalColor`  | `""` (theme-aware blue)                   | `#RRGGBB` color for displayed values from 25% to 59%      |
-| `utilizationWarningColor` | `""` (theme-aware orange)                 | `#RRGGBB` color for displayed values from 60% to 84%      |
-| `utilizationCriticalColor` | `""` (theme-aware red)                  | `#RRGGBB` color for displayed values of 85% and higher    |
+| `utilizationThemeColors`  | `false`                                   | Grade bar figures from the current Omarchy theme (named colors when distinct, else accent-derived grades); graphs and rings keep their series colors |
+| `utilizationLowColor`     | `""` (theme green, else fixed)            | `#RRGGBB` color for displayed values below 25%            |
+| `utilizationNormalColor`  | `""` (theme blue, else fixed)             | `#RRGGBB` color for displayed values from 25% to 59%      |
+| `utilizationWarningColor` | `""` (theme orange or yellow, else fixed) | `#RRGGBB` color for displayed values from 60% to 84%      |
+| `utilizationCriticalColor` | `""` (theme red, else fixed)             | `#RRGGBB` color for displayed values of 85% and higher    |
 | `showProcesses`           | `true`                                    | Top processes on every page                               |
 | `showCores`, `showLoad`   | `true`                                    | CPU page sections                                         |
 | `showBreakdown`           | `true`                                    | Memory breakdown                                          |
